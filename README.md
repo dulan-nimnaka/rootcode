@@ -28,6 +28,22 @@ python app.py
 
 3. Open `http://127.0.0.1:5000/` in your browser to use the UI.
 
+Desktop (Tkinter) app
+---------------------
+A simple accessible desktop front-end is provided as `tk_app.py`. It uses the same core modules directly and does not require the Flask server.
+
+Run it from the repo root with the venv active:
+
+```bash
+source .venv/bin/activate
+python tk_app.py
+```
+
+Accessibility features:
+- Keyboard shortcuts: Ctrl+H toggles high-contrast mode; Ctrl+L toggles large-font mode; G triggers greeting; Enter submits guest phrase.
+- Announcements pane: textual announcements are shown for screen readers.
+- Presentation viewer: opened from the app via the menu or Ctrl+P.
+
 Run tests
 
 ```bash
