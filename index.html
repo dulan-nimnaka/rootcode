@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechBites Robot Control Panel</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 1200px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+        
+        /* Left Panel: Controls */
+        .controls {
+            padding: 30px;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .controls h1 {
+            font-size: 24px;
+            color: #1a1a1a;
+            margin-top: 0;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .control-group label {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.15);
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            color: #fff;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .btn-primary { background-color: #007bff; }
+        .btn-primary:hover { background-color: #0056b3; }
+        
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #5a6268; }
+
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+
+        /* Right Panel: Simulation */
+        .simulation {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .status-box {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 16px;
+            height: 100px;
+            overflow-y: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #444;
+        }
+        .status-box.success {
+            border-left: 5px solid #28a745;
+            color: #155724;
+            background-color: #d4edda;
+        }
+        .status-box.error {
+            border-left: 5px solid #dc3545;
+            color: #721c24;
+            background-color: #f8d7da;
+        }
+        
+        #mapCanvas {
+            border: 2px solid #333;
+            background-color: #fdfdfd;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 15 / 12; /* Match the grid size */
+            image-rendering: pixelated; /* Makes the scaled grid sharp */
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .controls {
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+            #mapCanvas {
+                /* Adjust height for mobile */
+                aspect-ratio: 15 / 12; 
+                max-height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- ===== LEFT PANEL: CONTROLS ===== -->
+        <div class="controls">
+            <h1>Robot Controls</h1>
+            
+            <!-- Module 1: Greeting -->
+            <div class="control-group">
+                <label>Module 1: Contextual Greeting</label>
+                <button id="greetBtn" class="btn-secondary">Greet Guest</button>
+            </div>
+            
+            <!-- Module 2 & 3: Guest Inquiry & Table Find -->
+            <div class="control-group">
+                <label for="guestInput">Module 2 & 3: Guest Request</label>
+                <input type="text" id="guestInput" placeholder="e.g., 'a table for six', 'just me and my wife'">
+                <button id="askBtn" class="btn-primary">Find Table</button>
+            </div>
+            
+            <!-- Simulation Controls -->
+            <div class="control-group">
+                <label>Simulation</label>
+                <button id="resetBtn" class="btn-danger">Reset All Tables</button>
+            </div>
+        </div>
+
+        <!-- ===== RIGHT PANEL: SIMULATION ===== -->
+        <div class="simulation">
+            <!-- Robot Status Display -->
+            <label for="statusBox" style="font-weight: 600; font-size: 16px;">Robot Status:</label>
+            <div id="statusBox" class="status-box">
+                Waiting for command...
+            </div>
+            
+            <!-- Module 4: Pathfinding Map -->
+            <label for="mapCanvas" style="font-weight: 600; font-size: 16px;">Module 4: Restaurant Map & Navigation</label>
+            <canvas id="mapCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. GET ELEMENTS ---
+            const greetBtn = document.getElementById('greetBtn');
+            const askBtn = document.getElementById('askBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const guestInput = document.getElementById('guestInput');
+            const statusBox = document.getElementById('statusBox');
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // --- 2. MAP & ROBOT STATE ---
+            const MAP_GRID = { cols: 15, rows: 12 };
+            let mapData = []; // Will store tables
+            let robot = { x: 1, y: 1, path: [], step: 0, active: false }; // Robot starts at [1, 1]
+            let TILE_SIZE = 0; // Will be calculated dynamically
+
+            // --- 3. API HELPER FUNCTIONS ---
+
+            // Update status box
+            function updateStatus(message, type = 'info') {
+                statusBox.textContent = message;
+                statusBox.className = 'status-box'; // Reset
+                if (type === 'success') {
+                    statusBox.classList.add('success');
+                } else if (type === 'error') {
+                    statusBox.classList.add('error');
+                }
+            }
+
+            // M1: Greet Guest
+            async function handleGreet() {
+                try {
+                    const response = await fetch('/api/greet');
+                    const data = await response.json();
+                    updateStatus(data.message, 'info');
+                } catch (err) {
+                    updateStatus('Error: Could not connect to server.', 'error');
+                }
+            }
+
+            // M2 & M3: Handle Guest Request
+            async function handleRequest() {
+                const text = guestInput.value;
+                if (!text) {
+                    updateStatus('Please enter a guest request.', 'error');
+                    return;
+                }
+                
+                robot.active = false; // Stop any previous animation
+                
+                try {
+                    const response = await fetch('/api/handle_request', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: text })
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        updateStatus(data.message, 'success');
+                        // M4: Get path and start guiding
+                        await getPathAndAnimate(data.target_coords);
+                    } else {
+                        updateStatus(data.message, 'error');
+                        await fetchMapData(); // Refresh map to show no changes
+                    }
+                } catch (err) {
+                    updateStatus('Error: Could not process request.', 'error');
+                }
+            }
+            
+            // M4: Get Path
+            async function getPathAndAnimate(target) {
+                try {
+                    const response = await fetch('/api/get_path', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ x: target.x, y: target.y })
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        robot.path = data.path;
+                        robot.step = 0;
+                        robot.active = true;
+                        await fetchMapData(); // Fetch new table statuses before starting animation
+                    } else {
+                        updateStatus(data.message, 'error');
+                    }
+                } catch (err) {
+                    updateStatus('Error: Could not get path.', 'error');
+                }
+            }
+
+            // Helper: Reset Simulation
+            async function handleReset() {
+                try {
+                    const response = await fetch('/api/reset_sim', { method: 'POST' });
+                    const data = await response.json();
+                    if (data.success) {
+                        updateStatus(data.message, 'success');
+                        robot.active = false;
+                        robot.path = [];
+                        robot.x = 1; // Reset robot position
+                        robot.y = 1;
+                        await fetchMapData(); // Refresh map
+                    } else {
+                        updateStatus(data.message, 'error');
+                    }
+                } catch (err) {
+                    updateStatus('Error: Could not reset.', 'error');
+                }
+            }
+            
+            // Helper: Fetch map data (table statuses)
+            async function fetchMapData() {
+                try {
+                    const response = await fetch('/api/get_tables');
+                    mapData = await response.json();
+                    drawMap(); // Redraw map with new data
+                } catch (err) {
+                    console.error("Failed to fetch map data:", err);
+                }
+            }
+
+
+            // --- 4. CANVAS DRAWING FUNCTIONS ---
+
+            function resizeCanvas() {
+                // Get the width of the container
+                const containerWidth = canvas.parentElement.clientWidth;
+                // Calculate tile size based on container width
+                TILE_SIZE = Math.floor(containerWidth / MAP_GRID.cols);
+                
+                // Set canvas dimensions
+                canvas.width = TILE_SIZE * MAP_GRID.cols;
+                canvas.height = TILE_SIZE * MAP_GRID.rows;
+                
+                // Redraw map after resize
+                drawMap();
+            }
+
+            function drawMap() {
+                if (!mapData.length) return; // Don't draw if no data
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                for (let y = 0; y < MAP_GRID.rows; y++) {
+                    for (let x = 0; x < MAP_GRID.cols; x++) {
+                        
+                        // Check if there's a table at this location
+                        const table = mapData.find(t => t.x_coord === x && t.y_coord === y);
+
+                        if (table) {
+                            // Draw table
+                            if (table.status === 'Available') {
+                                ctx.fillStyle = '#28a745'; // Green
+                            } else if (table.status === 'Occupied') {
+                                ctx.fillStyle = '#dc3545'; // Red
+                            }
+                            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                            
+                            // Draw table name
+                            ctx.fillStyle = '#fff';
+                            ctx.font = `bold ${TILE_SIZE * 0.4}px Arial`;
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(table.name, (x + 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE);
+
+                        } else {
+                            // Simple wall/floor for non-table tiles
+                            // This is a simplified view; for accuracy, we'd fetch the whole grid
+                            ctx.fillStyle = (x === 0 || y === 0 || x === MAP_GRID.cols - 1 || y === MAP_GRID.rows - 1) ? '#555' : '#fdfdfd';
+                            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                            
+                            // Draw grid lines
+                            ctx.strokeStyle = '#eee';
+                            ctx.strokeRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+                        }
+                    }
+                }
+                
+                // Draw robot's start position
+                ctx.fillStyle = '#007bff';
+                ctx.beginPath();
+                ctx.arc((robot.x + 0.5) * TILE_SIZE, (robot.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            function drawRobot() {
+                // Draw robot at its current path position
+                ctx.fillStyle = '#007bff';
+                ctx.beginPath();
+                ctx.arc((robot.x + 0.5) * TILE_SIZE, (robot.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+
+            // --- 5. ANIMATION LOOP ---
+            let lastTime = 0;
+            const animationSpeed = 200; // milliseconds per step
+
+            function animate(timestamp) {
+                if (robot.active) {
+                    let deltaTime = timestamp - lastTime;
+                    
+                    if (deltaTime > animationSpeed) {
+                        lastTime = timestamp;
+
+                        if (robot.step < robot.path.length) {
+                            // Get next step
+                            const [nextX, nextY] = robot.path[robot.step];
+                            robot.x = nextX;
+                            robot.y = nextY;
+                            
+                            // Redraw map and robot
+                            drawMap(); // Redraws tables
+                            drawRobot();
+                            
+                            robot.step++;
+                        } else {
+                            // Path finished
+                            robot.active = false;
+                            updateStatus(`I have guided you to your table. Enjoy your meal!`, 'success');
+                            
+                            // Small visual cue that robot has "delivered" guests
+                            ctx.fillStyle = 'rgba(0, 123, 255, 0.3)';
+                            ctx.beginPath();
+                            ctx.arc((robot.x + 0.5) * TILE_SIZE, (robot.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.6, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                    }
+                }
+                
+                requestAnimationFrame(animate);
+            }
+
+            // --- 6. INITIALIZATION ---
+            
+            // Add event listeners
+            greetBtn.addEventListener('click', handleGreet);
+            askBtn.addEventListener('click', handleRequest);
+            resetBtn.addEventListener('click', handleReset);
+            
+            // Add listener for 'Enter' key on input
+            guestInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleRequest();
+                }
+            });
+
+            // Handle window resize
+            window.addEventListener('resize', resizeCanvas);
+
+            // Initial setup
+            async function initialize() {
+                updateStatus('Connecting to robot brain...', 'info');
+                await fetchMapData();
+                resizeCanvas(); // Set initial canvas size
+                updateStatus('Robot is ready. Welcome to TechBites!', 'success');
+                requestAnimationFrame(animate); // Start the animation loop
+            }
+
+            initialize();
+        });
+    </script>
+</body>
+</html>
