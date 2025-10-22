@@ -1,0 +1,10 @@
+{
+  "version": "v1.1",
+  "title": "Robot Receptionist - v1.1 (UX & Extras)",
+  "slides": [
+    {"title": "Human-centered Design", "content": "Warm voice, confirm info on screen, ask clarifying questions for ambiguity."},
+    {"title": "Integration", "content": "Connect to reservation system, optional facial recognition with opt-in."},
+    {"title": "Innovations", "content": "Pre-order drinks while guiding, analytics on guest flow, safety first."},
+    {"title": "Next Steps", "content": "Add Rasa NLU, ROS integration, CV models for obstacle classification."}
+  ]
+}

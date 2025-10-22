@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Robot Receptionist Presentation</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 40px; }
+      .slide { border: 1px solid #ddd; padding: 30px; border-radius: 8px; max-width: 900px; }
+      .controls { margin-top: 16px }
+    </style>
+  </head>
+  <body>
+    <h1 id="title">Presentation</h1>
+    <div>
+      Version:
+      <select id="versionSel"></select>
+    </div>
+    <div class="slide">
+      <h2 id="slideTitle"></h2>
+      <p id="slideContent"></p>
+    </div>
+    <div class="controls">
+      <button id="prev">Previous</button>
+      <button id="next">Next</button>
+    </div>
+
+    <script>
+      let versions = [];
+      let slides = [];
+      let idx = 0;
+
+      async function loadVersions(){
+        const res = await fetch('/api/version');
+        const j = await res.json();
+        versions = j.versions;
+        const sel = document.getElementById('versionSel');
+        sel.innerHTML = '';
+        versions.forEach(v => {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.innerText = v;
+          sel.appendChild(opt);
+        });
+        sel.onchange = () => loadVersion(sel.value);
+        if (versions.length) loadVersion(versions[0]);
+      }
+
+      async function loadVersion(ver){
+        const res = await fetch(`/versions/${ver}.json`);
+        const j = await res.json();
+        document.getElementById('title').innerText = j.title || 'Presentation';
+        slides = j.slides || [];
+        idx = 0;
+        render();
+      }
+
+      function render(){
+        if (!slides.length) return;
+        const s = slides[idx];
+        document.getElementById('slideTitle').innerText = s.title;
+        document.getElementById('slideContent').innerText = s.content;
+      }
+
+      document.getElementById('prev').addEventListener('click', ()=>{ if(idx>0) idx--; render(); });
+      document.getElementById('next').addEventListener('click', ()=>{ if(idx<slides.length-1) idx++; render(); });
+
+      loadVersions();
+    </script>
+  </body>
+</html>

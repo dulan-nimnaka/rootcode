@@ -2,6 +2,7 @@
 from flask import Flask, request, jsonify, send_file
 from receptionist import get_greeting, parse_party_size, init_db, find_table_for_party, plan_path, avoid_obstacle
 from receptionist.db import list_tables, init_db as _init_db
+import os
 
 app = Flask(__name__)
 
@@ -78,6 +79,19 @@ def api_get_tables():
 		x,y = TABLE_COORDS.get(tid, (0,0))
 		out.append({'name': tid, 'status': r['status'], 'x_coord': x, 'y_coord': y})
 	return jsonify(out)
+
+
+@app.route('/api/version')
+def api_version():
+	# list JSON files under versions/
+	base = os.path.join(os.path.dirname(__file__), 'versions')
+	versions = []
+	if os.path.isdir(base):
+		for fname in os.listdir(base):
+			if fname.endswith('.json'):
+				versions.append(fname.replace('.json',''))
+	return jsonify({'versions': sorted(versions)})
+
 
 @app.route('/api/parse_party', methods=['POST'])
 def api_parse_party():

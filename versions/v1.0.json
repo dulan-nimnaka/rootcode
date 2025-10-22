@@ -1,0 +1,11 @@
+{
+  "version": "v1.0",
+  "title": "Robot Receptionist - Overview v1.0",
+  "slides": [
+    {"title": "Introduction", "content": "Overview of requirements: Greeting, NLP, Table Allocation, Navigation."},
+    {"title": "Greeting", "content": "Rule-based greeting based on system time (Good morning / afternoon / evening)."},
+    {"title": "NLP", "content": "Speech-to-text + NLU to extract party size. Supports 'two friends and me', 'a table for six'."},
+    {"title": "Table Allocation", "content": "SQL DB storing table metadata. Single fit then combinable tables with sync groups."},
+    {"title": "Navigation", "content": "ROS-style stack: A* for global plan and reactive local obstacle avoidance using LIDAR/cameras."}
+  ]
+}
